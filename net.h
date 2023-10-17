@@ -58,6 +58,6 @@ extern int net_input_handler(uint16_t type, const uint8_t *data, size_t len,
 
 extern int net_run(void);
 extern void net_shutdown(void);
-extern int net_init
+extern int net_init(void);
 
 #endif
