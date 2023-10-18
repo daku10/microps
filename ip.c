@@ -286,10 +286,10 @@ static ssize_t ip_output_core(struct ip_iface *iface, uint8_t protocol,
     hdr = (struct ip_hdr *)buf;
     /* Exercise 8-3 */
     hlen = IP_HDR_SIZE_MIN;
-    total = hton16(len + hlen);
+    total = len + hlen;
     hdr->vhl = (IP_VERSION_IPV4 << 4) | (hlen >> 2);
     hdr->tos = 0;
-    hdr->total = total;
+    hdr->total = hton16(total);
     hdr->id = hton16(id);
     hdr->offset = hton16(offset);
     hdr->ttl = 255;
