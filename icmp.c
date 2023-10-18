@@ -80,6 +80,7 @@ static void icmp_dump(const uint8_t *data, size_t len) {
 
 void icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst,
                 struct ip_iface *iface) {
+    struct icmp_hdr *hdr;
     char addr1[IP_ADDR_STR_LEN];
     char addr2[IP_ADDR_STR_LEN];
 
@@ -91,14 +92,47 @@ void icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst,
         errorf("cksum16() failure");
         return;
     }
+    hdr = (struct icmp_hdr *)data;
 
     debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)),
            ip_addr_ntop(dst, addr2, sizeof(addr2)), len);
     icmp_dump(data, len);
+    switch (hdr->type) {
+        case ICMP_TYPE_ECHO:
+            /* Responds with the address of the received interface.  */
+            icmp_output(ICMP_TYPE_ECHOREPLY, hdr->code, ntoh32(hdr->values),
+                        data - ICMP_HDR_SIZE, len, iface->unicast, src);
+            break;
+        default:
+            /* ignore */
+            break;
+    }
 }
 
 int icmp_output(uint8_t type, uint8_t code, uint32_t values,
                 const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst) {
+    uint8_t buf[ICMP_BUFSIZ];
+    struct icmp_hdr *hdr;
+    size_t msg_len;
+    char addr1[IP_ADDR_STR_LEN];
+    char addr2[IP_ADDR_STR_LEN];
+
+    hdr = (struct icmp_hdr *)buf;
+    /* Exercise 11-1 */
+    hdr->type = type;
+    hdr->code = code;
+    hdr->sum = 0;
+    hdr->values = hton32(values);
+    memcpy(buf + ICMP_HDR_SIZE, data, len);
+    msg_len = ICMP_HDR_SIZE + len;
+    hdr->sum = cksum16((uint16_t *)buf, msg_len, 0);
+
+    debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)),
+           ip_addr_ntop(dst, addr2, sizeof(addr2)), msg_len);
+    icmp_dump((uint8_t *)hdr, msg_len);
+
+    /* Exercise 11-2 */
+    return ip_output(IP_PROTOCOL_ICMP, buf, msg_len, src, dst);
 }
 
 int icmp_init(void) {
