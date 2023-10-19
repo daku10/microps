@@ -36,8 +36,8 @@ extern int ether_transmit_helper(struct net_device *dev, uint16_t type,
                                  const uint8_t *payload, size_t plen,
                                  const void *dst,
                                  ether_transmit_func_t callback);
-extern int ether_input_heler(struct net_device *dev,
-                             ether_input_func_t callback);
+extern int ether_input_helper(struct net_device *dev,
+                              ether_input_func_t callback);
 extern void ether_setup_helper(struct net_device *dev);
 
 #endif
