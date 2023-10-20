@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "arp.h"
 #include "icmp.h"
@@ -24,8 +25,16 @@ struct net_protocol_queue_entry {
     uint8_t data[];
 };
 
+struct net_timer {
+    struct net_timer *next;
+    struct timeval interval;
+    struct timeval last;
+    void (*handler)(void);
+};
+
 static struct net_device *devices;
 static struct net_protocol *protocols;
+static struct net_timer *timers;
 
 struct net_device *net_device_alloc(void) {
     struct net_device *dev;
@@ -152,6 +161,11 @@ int net_protocol_register(uint16_t type,
     infof("registered, type=0x%04x", type);
     return 0;
 }
+
+/* NOTE: must not be call after net_run() */
+int net_timer_register(struct timeval interval, void (*handler)(void)) {}
+
+int net_timer_handler(void) {}
 
 int net_input_handler(uint16_t type, const uint8_t *data, size_t len,
                       struct net_device *dev) {
