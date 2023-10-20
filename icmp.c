@@ -101,7 +101,8 @@ void icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst,
         case ICMP_TYPE_ECHO:
             /* Responds with the address of the received interface.  */
             icmp_output(ICMP_TYPE_ECHOREPLY, hdr->code, ntoh32(hdr->values),
-                        data - ICMP_HDR_SIZE, len, iface->unicast, src);
+                        (uint8_t *)(hdr + 1), len - ICMP_HDR_SIZE,
+                        iface->unicast, src);
             break;
         default:
             /* ignore */
