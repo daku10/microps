@@ -163,9 +163,38 @@ int net_protocol_register(uint16_t type,
 }
 
 /* NOTE: must not be call after net_run() */
-int net_timer_register(struct timeval interval, void (*handler)(void)) {}
+int net_timer_register(struct timeval interval, void (*handler)(void)) {
+    struct net_timer *timer;
+    /* Exercise 16-1 */
+    timer = memory_alloc(sizeof(*timer));
+    if (!timer) {
+        errorf("net_timer_register() failure");
+        return -1;
+    }
+    timer->interval = interval;
+    gettimeofday(&timer->last, NULL);
+    timer->handler = handler;
+    timer->next = timers;
+    timers = timer;
+    infof("registered, interval={%d, %d}", interval.tv_sec, interval.tv_usec);
+    return 0;
+}
 
-int net_timer_handler(void) {}
+int net_timer_handler(void) {
+    struct net_timer *timer;
+    struct timeval now, diff;
+
+    for (timer = timers; timer; timer = timer->next) {
+        gettimeofday(&now, NULL);
+        timersub(&now, &timer->last, &diff);
+        if (timercmp(&timer->interval, &diff, <) != 0) {
+            /* Exercise 16- 2*/
+            timer->handler();
+            timer->last = now;
+        }
+    }
+    return 0;
+}
 
 int net_input_handler(uint16_t type, const uint8_t *data, size_t len,
                       struct net_device *dev) {
