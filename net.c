@@ -33,9 +33,16 @@ struct net_timer {
     void (*handler)(void);
 };
 
+struct net_event {
+    struct net_event *next;
+    void (*handler)(void *arg);
+    void *arg;
+};
+
 static struct net_device *devices;
 static struct net_protocol *protocols;
 static struct net_timer *timers;
+static struct net_event *events;
 
 struct net_device *net_device_alloc(void) {
     struct net_device *dev;
@@ -244,6 +251,13 @@ int net_softirq_handler(void) {
     }
     return 0;
 }
+
+/* NOTE: must not be call after net_run() */
+int net_event_subscribe(void (*handler)(void *arg), void *arg) {}
+
+int net_event_handler(void) {}
+
+void net_raise_event(void) {}
 
 int net_run(void) {
     struct net_device *dev;

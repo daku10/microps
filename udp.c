@@ -1,5 +1,6 @@
 #include "udp.h"
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -227,6 +228,8 @@ ssize_t udp_output(struct ip_endpoint *src, struct ip_endpoint *dst,
 
     return len;
 }
+
+static void event_handler(void *arg) {}
 
 int udp_init(void) {
     /* Exercise 18-3 */
