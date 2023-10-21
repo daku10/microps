@@ -42,7 +42,7 @@ struct tcp_hdr {
 static char *tcp_flg_ntoa(uint8_t flg) {
     static char str[9];
 
-    snprintf(str, sizeof(str), "--%c%c%c%c%c",
+    snprintf(str, sizeof(str), "--%c%c%c%c%c%c",
              TCP_FLG_ISSET(flg, TCP_FLG_URG) ? 'U' : '-',
              TCP_FLG_ISSET(flg, TCP_FLG_ACK) ? 'A' : '-',
              TCP_FLG_ISSET(flg, TCP_FLG_PSH) ? 'P' : '-',
@@ -52,9 +52,71 @@ static char *tcp_flg_ntoa(uint8_t flg) {
     return str;
 }
 
-static void tcp_dump(const uint8_t *data, size_t len) {}
+static void tcp_dump(const uint8_t *data, size_t len) {
+    struct tcp_hdr *hdr;
+
+    flockfile(stderr);
+    hdr = (struct tcp_hdr *)data;
+    fprintf(stderr, "src: %u\n", ntoh16(hdr->src));
+    fprintf(stderr, "dst: %u\n", ntoh16(hdr->dst));
+    fprintf(stderr, "seq: %u\n", ntoh32(hdr->seq));
+    fprintf(stderr, "ack: %u\n", ntoh32(hdr->ack));
+    fprintf(stderr, "off: 0x%02x (%d)\n", hdr->off, (hdr->off >> 4) << 2);
+    fprintf(stderr, "flg: 0x%02x (%s)\n", hdr->flg, tcp_flg_ntoa(hdr->flg));
+    fprintf(stderr, "wnd: %u\n", ntoh16(hdr->wnd));
+    fprintf(stderr, "sum: 0x%04x\n", ntoh16(hdr->sum));
+    fprintf(stderr, "up: %u\n", ntoh16(hdr->up));
+#ifdef HEXDUMP
+    hexdump(stderr, data, len);
+#endif
+    funlockfile(stderr);
+}
 
 static void tcp_input(const uint8_t *data, size_t len, ip_addr_t src,
-                      ip_addr_t dst, struct ip_iface *iface) {}
+                      ip_addr_t dst, struct ip_iface *iface) {
+    struct tcp_hdr *hdr;
+    struct pseudo_hdr pseudo;
+    uint16_t psum;
+    char addr1[IP_ADDR_STR_LEN];
+    char addr2[IP_ADDR_STR_LEN];
 
-int tcp_init(void) {}
+    if (len < sizeof(*hdr)) {
+        errorf("too short");
+        return;
+    }
+    hdr = (struct tcp_hdr *)data;
+    /* Exercise 22-3 */
+    pseudo.src = src;
+    pseudo.dst = dst;
+    pseudo.zero = 0;
+    pseudo.protocol = IP_PROTOCOL_TCP;
+    pseudo.len = hton16(len);
+    psum = ~cksum16((uint16_t *)&pseudo, sizeof(pseudo), 0);
+    if (cksum16((uint16_t *)data, len, psum) != 0) {
+        errorf("cksum16() failure");
+        return;
+    }
+
+    /* Exercise 22-4 */
+    if (src == IP_ADDR_BROADCAST || src == iface->broadcast ||
+        dst == IP_ADDR_BROADCAST || dst == iface->broadcast) {
+        errorf("invalid address");
+        return;
+    }
+
+    debugf("%s:%d => %s:%d, len=%zu (payload=%zu)",
+           ip_addr_ntop(src, addr1, sizeof(addr1)), ntoh16(hdr->src),
+           ip_addr_ntop(dst, addr2, sizeof(addr2)), ntoh16(hdr->dst), len,
+           len - sizeof(*hdr));
+    tcp_dump(data, len);
+    return;
+}
+
+int tcp_init(void) {
+    /* Exercise 22-1 */
+    if (ip_protocol_register(IP_PROTOCOL_TCP, tcp_input) == -1) {
+        errorf("ip_protocol_register failed");
+        return -1;
+    }
+    return 0;
+}
