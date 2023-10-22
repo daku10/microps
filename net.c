@@ -272,7 +272,7 @@ int net_event_subscribe(void (*handler)(void *arg), void *arg) {
 int net_event_handler(void) {
     struct net_event *event;
 
-    for (event = events; event; event = events->next) {
+    for (event = events; event; event = event->next) {
         event->handler(event->arg);
     }
     return 0;
@@ -332,6 +332,7 @@ int net_init(void) {
     /* Exercise 22-2 */
     if (tcp_init() == -1) {
         errorf("tcp_init() failure");
+        return -1;
     }
     infof("initialized");
     return 0;
