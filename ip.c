@@ -129,7 +129,7 @@ static void ip_dump(const uint8_t *data, size_t len) {
     fprintf(stderr, "id: %u\n", ntoh16(hdr->id));
     offset = ntoh16(hdr->offset);
     fprintf(stderr, "offset: 0x%04x [flags=%x, offset=%u]\n", offset,
-            (offset & 0xe0000) >> 13, offset & 0x1ffff);
+            (offset & 0xe000) >> 13, offset & 0x1fff);
     fprintf(stderr, "ttl: %u\n", hdr->ttl);
     fprintf(stderr, "protocol: %u\n", hdr->protocol);
     fprintf(stderr, "sum: 0x%04x\n", ntoh16(hdr->sum));
